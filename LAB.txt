@@ -1,97 +1,336 @@
-Slip 1 – MongoDB CRUD Operations
+FOR MONGODB EXPERIMENT, SETUP DOCKER:
+sudo apt install docker.io -y
+sudo systemctl enable --now docker
+sudo usermod -aG docker $USER && newgrp docker
+docker version
+sudo docker run -d --name mongodb -p 27017:27017 mongo:4.4
+docker ps
 
-// 1. Create collection and insert 5 documents
+
+-----------------------Slip1 (Way1)--------------------------------:
+sudo docker exec -it mongodb mongo 
+
+IMPORTANT COMMAND mongo:
+----
+show dbs
+show collections
+db.collection_name.drop()
+db.dropDatabase()
+---
+
 db.Students.insertMany([
-  {name: "John", dept: "CS", marks: 85},
-  {name: "Alice", dept: "IT", marks: 78},
-  {name: "Bob", dept: "CS", marks: 92},
-  {name: "Carol", dept: "ECE", marks: 65},
-  {name: "David", dept: "IT", marks: 88}
+ {name: "John", dept: "CS", marks: 85},
+ {name: "Alice", dept: "IT", marks: 78},
+ {name: "Bob", dept: "CS", marks: 92},
+ {name: "Carol", dept: "ECE", marks: 65},
+ {name: "David", dept: "IT", marks: 88}
 ])
 
-// 2. Update marks of one student
 db.Students.updateOne(
-  {name: "Carol"},
-  {$set: {marks: 75}}
+ {name: "Carol"},
+ {$set: {marks: 75}}
 )
 
-// 3. Delete one record
 db.Students.deleteOne({name: "Bob"})
 
-// 4. Display all records
 db.Students.find().pretty()
 
----------------------------------------------------------
-Slip 2 – Querying JSON Data
+-----------------------Slip1 (Way2)--------------------------------:
+pip3 install pymongo
+vim exp1.py
 
-// Load JSON file (run from command line first)
-// mongoimport --db product_db --collection products --file products.json
+```
+from pymongo import MongoClient
+client = MongoClient('mongodb://localhost:27017/')
+db = client['student_db']
+collection = db['Students']
+# 1. Insert documents
+students = [
+ {"name": "John", "dept": "CS", "marks": 85},
+ {"name": "Alice", "dept": "IT", "marks": 78},
+ {"name": "Bob", "dept": "CS", "marks": 92},
+ {"name": "Carol", "dept": "ECE", "marks": 65},
+ {"name": "David", "dept": "IT", "marks": 88}
+]
+collection.insert_many(students)
+# 2. Update marks
+collection.update_one({"name": "Carol"}, {"$set": {"marks": 75}})
+# 3. Delete record
+collection.delete_one({"name": "Bob"})
+# 4. Display all records
+for student in collection.find():
+ print(student)
+```
 
-// 1. Display electronics products
-db.products.find({category: "Electronics"})
 
-// 2. Count items priced above ₹10,000
-db.products.countDocuments({price: {$gt: 10000}})
+python3 exp1.py
 
----------------------------------------------------------
-Slip 3 – Aggregation Pipeline
 
-db.employees.aggregate([
+-----------------------Slip2 (Way1)--------------------------------:
+vim product.json
+```
+[
   {
-    $group: {
-      _id: "$department",
-      averageSalary: {$avg: "$salary"}
-    }
+    "name": "Smartphone X200",
+    "category": "Electronics",
+    "price": 24999,
+    "brand": "TechPro",
+    "stock": 35
   },
   {
-    $sort: {averageSalary: -1}
+    "name": "Laptop Air 14",
+    "category": "Electronics",
+    "price": 56999,
+    "brand": "CompEdge",
+    "stock": 15
+  },
+  {
+    "name": "Office Chair ComfortPlus",
+    "category": "Furniture",
+    "price": 7999,
+    "brand": "SitWell",
+    "stock": 50
+  },
+  {
+    "name": "Bluetooth Speaker Mini",
+    "category": "Electronics",
+    "price": 2999,
+    "brand": "SoundBlitz",
+    "stock": 120
+  },
+  {
+    "name": "Refrigerator CoolMate 300L",
+    "category": "Appliances",
+    "price": 22999,
+    "brand": "HomeEase",
+    "stock": 10
+  },
+  {
+    "name": "Smart TV 43 inch",
+    "category": "Electronics",
+    "price": 32999,
+    "brand": "VisionTech",
+    "stock": 25
+  },
+  {
+    "name": "Table Lamp GlowLite",
+    "category": "Home Decor",
+    "price": 1999,
+    "brand": "BrightHomes",
+    "stock": 70
+  },
+  {
+    "name": "Headphones BassBoost",
+    "category": "Electronics",
+    "price": 1499,
+    "brand": "AudioX",
+    "stock": 90
   }
+]
+```
+docker cp product.json mongodb:/product.json
+
+docker exec -it mongodb mongoimport --db shop --collection products --file /product.json --jsonArray
+
+sudo docker exec -it mongodb mongo 
+use shop
+db.products.find({ category: "Electronics" }).pretty()
+db.products.countDocuments({ price: { $gt: 10000 } })
+
+-----------------------Slip2 (Way2)--------------------------------:
+pip3 install pymongo
+vim product.json   
+(Copy data from Above)
+docker cp product.json mongodb:/product.json
+
+vim exp2.py
+```
+import json
+from pymongo import MongoClient
+client = MongoClient('mongodb://localhost:27017/')
+db = client['product_db']
+collection = db['products']
+# Load JSON file
+with open('product.json') as f:
+ data = json.load(f)
+ collection.insert_many(data)
+
+# 1. Electronics products
+electronics = collection.find({"category": "Electronics"})
+for product in electronics:
+ print(product)
+# 2. Count expensive items
+count = collection.count_documents({"price": {"$gt": 10000}})
+print(f"Items above ₹10,000: {count}")
+```
+
+python3 exp2.py
+
+
+-----------------------Slip3 (Way1)--------------------------------:
+sudo docker exec -it mongodb mongo 
+use company
+db.employees.insertMany([
+  { name: "Alice", department: "HR", salary: 45000 },
+  { name: "Bob", department: "Engineering", salary: 75000 },
+  { name: "Charlie", department: "Engineering", salary: 82000 },
+  { name: "David", department: "Marketing", salary: 60000 },
+  { name: "Eve", department: "HR", salary: 52000 },
+  { name: "Frank", department: "Engineering", salary: 91000 },
+  { name: "Grace", department: "Marketing", salary: 58000 }
 ])
 
----------------------------------------------------------
-Slip 4 – PyMongo Operations
+db.employees.aggregate([
+ {
+ $group: {
+ _id: "$department",
+ averageSalary: {$avg: "$salary"}
+ }
+ },
+ {
+ $sort: {averageSalary: -1}
+ }
+])
 
+-----------------------Slip3 (Way2)--------------------------------:
+sudo docker exec -it mongodb mongo 
+use company
+db.employees.insertMany([
+  { name: "Alice", department: "HR", salary: 45000 },
+  { name: "Bob", department: "Engineering", salary: 75000 },
+  { name: "Charlie", department: "Engineering", salary: 82000 },
+  { name: "David", department: "Marketing", salary: 60000 },
+  { name: "Eve", department: "HR", salary: 52000 },
+  { name: "Frank", department: "Engineering", salary: 91000 },
+  { name: "Grace", department: "Marketing", salary: 58000 }
+])
+
+
+vim exp3.py
+```
 from pymongo import MongoClient
 
+# Connect to MongoDB
+client = MongoClient('mongodb://localhost:27017/')
+
+# Select database and collection
+db = client['company']
+collection = db['employees']
+
+# Define aggregation pipeline
+pipeline = [
+    {"$group": {"_id": "$department", "averageSalary": {"$avg": "$salary"}}},
+    {"$sort": {"averageSalary": -1}}
+]
+
+# Run aggregation
+results = collection.aggregate(pipeline)
+
+# Display results
+for result in results:
+    print(f"Department: {result['_id']}, Avg Salary: {result['averageSalary']:.2f}")
+
+```
+
+python3 exp3.py
+
+
+-----------------------Slip4--------------------------------:
+
+vim exp4.py
+```
+from pymongo import MongoClient
 # 1. Connect to MongoDB
 client = MongoClient('mongodb://localhost:27017/')
 db = client['company_db']
 employees = db['employees']
-
 # 2. Insert 3 employee documents
 employee_data = [
-    {"name": "John", "department": "IT", "salary": 60000},
-    {"name": "Alice", "department": "HR", "salary": 45000},
-    {"name": "Bob", "department": "Finance", "salary": 75000}
+ {"name": "John", "department": "IT", "salary": 60000},
+ {"name": "Alice", "department": "HR", "salary": 45000},
+ {"name": "Bob", "department": "Finance", "salary": 75000}
 ]
 employees.insert_many(employee_data)
-
 # 3. Retrieve records where salary > 50,000
 high_earners = employees.find({"salary": {"$gt": 50000}})
 print("Employees with salary > 50,000:")
 for emp in high_earners:
-    print(emp)
-
+ print(emp)
 # 4. Update one record
 employees.update_one(
-    {"name": "Alice"},
-    {"$set": {"salary": 52000}}
+ {"name": "Alice"},
+ {"$set": {"salary": 52000}}
 )
-
 # Print all documents
 print("\nAll employees:")
 for emp in employees.find():
-    print(emp)
+ print(emp)
+```
 
----------------------------------------------------------------
-Slip 5 – Hive Basic Querying
+python3 exp4.py
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-----------------------Slip5 (BASIC HIVE)--------------------------------:
+./Start-Hadoop-Hive.sh
+
+vim movies.csv
+```
+Avengers: Endgame,Action,2019,USA
+3 Idiots,Comedy,2009,India
+Parasite,Thriller,2019,South Korea
+Dangal,Biography,2016,India
+Inception,Sci-Fi,2010,USA
+Spirited Away,Animation,2001,Japan
+Interstellar,Sci-Fi,2014,USA
+PK,Comedy,2014,India
+Your Name,Animation,2016,Japan
+The Dark Knight,Action,2008,USA
+Coco,Animation,2017,USA
+Bahubali 2,Action,2017,India
+Joker,Drama,2019,USA
+Train to Busan,Horror,2016,South Korea
+The Godfather,Crime,1972,USA
+```
+
+hive
+
+IMP COMMAND HIVE:
+---
+DROP TABLE table_name;
+---
+
 
 -- Create table
 CREATE TABLE movies (
-    title STRING,
-    type STRING,
-    release_year INT,
-    country STRING
+ title STRING,
+ type STRING,
+ release_year INT,
+ country STRING
 )
 ROW FORMAT DELIMITED
 FIELDS TERMINATED BY ','
@@ -99,150 +338,365 @@ STORED AS TEXTFILE;
 
 -- Load data
 LOAD DATA LOCAL INPATH '/path/to/movies.csv' INTO TABLE movies;
+LOAD DATA LOCAL INPATH '/home/talentum/Desktop/EndSem/movies.csv' INTO TABLE movies;
 
 -- 1. Number of movies per country
-SELECT country, COUNT(*) AS movie_count
+SELECT country, COUNT(*) as movie_count
 FROM movies
 GROUP BY country
 ORDER BY movie_count DESC;
 
 -- 2. Top 5 recent release years
-SELECT release_year, COUNT(*) AS movie_count
+SELECT release_year, COUNT(*) as movie_count
 FROM movies
 GROUP BY release_year
 ORDER BY release_year DESC
 LIMIT 5;
 
-------------------------------------------------------
-Slip 6 – Hive Sorting and Aggregation
 
--- Create sales table
-CREATE TABLE sales_data (
-    region STRING,
-    product STRING,
-    amount DOUBLE
-)
-ROW FORMAT DELIMITED
-FIELDS TERMINATED BY '\t';
+-----------------------Slip6 (SORTING AGGREGATION)--------------------------------:
+./Start-Hadoop-Hive.sh
+hive
 
--- 1. Total sales per region
-SELECT region, SUM(amount) AS total_sales
-FROM sales_data
-GROUP BY region;
+-- Create sales table 
+CREATE TABLE sales_data ( 
+    region STRING, 
+    product STRING, 
+    amount DOUBLE 
+) 
+ROW FORMAT DELIMITED 
+FIELDS TERMINATED BY '\t'; 
 
--- 2. Sort by total sales descending
-SELECT region, SUM(amount) AS total_sales
-FROM sales_data
-GROUP BY region
+INSERT INTO TABLE sales_data VALUES 
+('North', 'Laptop', 75000.0),
+('North', 'Mobile', 25000.0),
+('South', 'Tablet', 18000.0),
+('East', 'Headphones', 5000.0),
+('West', 'Laptop', 65000.0),
+('East', 'Mobile', 22000.0),
+('South', 'Laptop', 70000.0),
+('West', 'Smartwatch', 12000.0),
+('North', 'Tablet', 15000.0),
+('South', 'Headphones', 4000.0);
+
+-- 1. Total sales per region 
+SELECT region, SUM(amount) as total_sales 
+FROM sales_data 
+GROUP BY region; 
+ 
+-- 2. Sort by total sales descending 
+SELECT region, SUM(amount) as total_sales 
+FROM sales_data 
+GROUP BY region 
 ORDER BY total_sales DESC;
 
------------------------------------------------------
-Slip 7 – Hive Joins and Filtering
 
--- Create tables
-CREATE TABLE customers (
-    cust_id INT,
-    name STRING,
-    city STRING
-);
+-----------------------Slip7 (JOIN FILTERING)--------------------------------:
+./Start-Hadoop-Hive.sh
+hive
 
-CREATE TABLE orders (
-    order_id INT,
-    cust_id INT,
-    amount DOUBLE
-);
+-- Create tables 
+CREATE TABLE customers ( 
+    cust_id INT, 
+    name STRING, 
+    city STRING 
+); 
+ 
+CREATE TABLE orders ( 
+    order_id INT, 
+    cust_id INT, 
+    amount DOUBLE 
+); 
 
--- Inner join to find total order amount per customer
-SELECT c.name, SUM(o.amount) AS total_amount
-FROM customers c
-JOIN orders o ON c.cust_id = o.cust_id
-GROUP BY c.name
+INSERT INTO TABLE customers VALUES
+(1, 'Amit', 'Delhi'),
+(2, 'Riya', 'Mumbai'),
+(3, 'Karan', 'Bangalore'),
+(4, 'Neha', 'Chennai'),
+(5, 'Vikram', 'Kolkata');
+
+
+INSERT INTO TABLE orders VALUES
+(101, 1, 12000.0),
+(102, 1, 8000.0),
+(103, 2, 15000.0),
+(104, 3, 7000.0),
+(105, 3, 4000.0),
+(106, 4, 10000.0),
+(107, 2, 5000.0),
+(108, 5, 3000.0),
+(109, 5, 2000.0),
+(110, 1, 10000.0);
+
+ 
+-- Inner join to find total order amount per customer 
+SELECT c.name, SUM(o.amount) as total_amount 
+FROM customers c 
+JOIN orders o ON c.cust_id = o.cust_id 
+GROUP BY c.name 
 ORDER BY total_amount DESC;
 
------------------------------------------------
-Slip 8 – Hive UDFs
 
--- Create UDF (Java implementation needed first)
--- Compile and add JAR to Hive
+-----------------------Slip8 (UDF)--------------------------------:
+
+java -version
+
+vim UpperCaseUDF.java
+```
+package com.example;
+
+import org.apache.hadoop.hive.ql.exec.UDF;
+import org.apache.hadoop.io.Text;
+
+public class UpperCaseUDF extends UDF {
+    public Text evaluate(Text input) {
+        if (input == null) return null;
+        return new Text(input.toString().toUpperCase());
+    }
+}
+```
+
+javac -cp $(hadoop classpath):/home/talentum/hive/lib/* -d . UpperCaseUDF.java
+
+
+jar -cvf uppercase-udf.jar com/example/UpperCaseUDF.class
+
+hive
+
 ADD JAR /path/to/uppercase-udf.jar;
+ADD JAR /home/talentum/Desktop/EndSem/uppercase-udf.jar;
 
--- Create temporary function
-CREATE TEMPORARY FUNCTION uppercase AS 'com.example.UpperCaseUDF';
-
--- Apply UDF on movies table
-SELECT uppercase(title) AS upper_title, type, release_year
+-- Create temporary function 
+CREATE TEMPORARY FUNCTION uppercase AS 'com.example.UpperCaseUDF'; 
+ 
+-- Apply UDF on movies table 
+SELECT uppercase(title) as upper_title, type, release_year 
 FROM movies;
 
-------------------------------------------------
-Slip 9 – Pig Basic Operations
 
--- Load student data
-students = LOAD 'students.txt' USING PigStorage(',')  
-          AS (name:chararray, marks:int);
 
--- Filter students with marks > 70
-good_students = FILTER students BY marks > 70;
 
--- Display names and marks
-result = FOREACH good_students GENERATE name, marks;
 
--- Store or display results
-STORE result INTO 'output';
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PIG SETUP:
+./Stop-Hadoop-Hive.sh
+./Start-Hadoop-Hive.sh
+
+mapred historyserver
+jps
+(JobHistoryserver should be there)
+
+Access: http://localhost:19888
+
+-----------------------Slip9 (PIG)--------------------------------:
+
+
+vim students.txt
+```
+1,John,85
+2,Emma,78
+3,Raj,92
+4,Sara,88
+```
+
+hdfs dfs -ls /user/talentum
+hdfs dfs -mkdir -p /user/talentum
+hdfs dfs -put ~/Desktop/EndSem/students.txt /user/talentum/
+hdfs dfs -ls /user/talentum
+hdfs dfs -cat /user/talentum/students.txt
+
+
+pig
+
+-- Load student data 
+students = LOAD 'students.txt' USING PigStorage(',') 
+           AS (id:int, name:chararray, marks:int);
+
+DUMP students;
+
+-- Filter students with marks > 70 
+good_students = FILTER students BY marks > 70; 
+ 
+-- Display names and marks 
+result = FOREACH good_students GENERATE id, name, marks;
+ 
+-- Store or display results 
+STORE result INTO '/user/talentum/output' USING PigStorage(',');
 DUMP result;
 
-------------------------------------------------
-Slip 10 – Pig Grouping and Aggregation
+hdfs dfs -ls /user/talentum/output
+hdfs dfs -cat /user/talentum/output/part-m-00000
 
--- Load student data
-students = LOAD 'students.txt' USING PigStorage(',')  
-          AS (name:chararray, marks:int);
+IMP COMMAND HDFS:
+---
+IF it shows output dir already exists:
+hdfs dfs -rm -r /user/talentum/output
+hdfs dfs -rm /user/talentum/employee_details.txt
+--
 
--- Filter students with marks > 70
-good_students = FILTER students BY marks > 70;
 
--- Display names and marks
-result = FOREACH good_students GENERATE name, marks;
+-----------------------Slip10 (PIG GROUPING AGGREGATION)--------------------------------:
 
--- Store or display results
-STORE result INTO 'output';
-DUMP result;
+vim sales_data.txt
+```
+Electronics	TV	50000
+Electronics	Laptop	80000
+Groceries	Rice	1500
+Groceries	Wheat	1200
+Clothing	Shirt	2000
+Clothing	Jeans	3000
+```
 
----------------------------------------------------
-Slip 11 – Pig Join Operation
+hdfs dfs -ls /user/talentum
+hdfs dfs -mkdir -p /user/talentum
+hdfs dfs -put ~/Desktop/EndSem/sales_data.txt /user/talentum/
+hdfs dfs -ls /user/talentum
+hdfs dfs -cat /user/talentum/sales_data.txt
 
--- Load datasets
+
+pig
+
+
+-- Load sales data 
+sales = LOAD 'sales_data.txt' USING PigStorage('\t')  
+        AS (category:chararray, product:chararray, amount:double); 
+ 
+-- Group by category and calculate average 
+grouped_sales = GROUP sales BY category; 
+avg_sales = FOREACH grouped_sales  
+            GENERATE group as category, AVG(sales.amount) as avg_amount; 
+ 
+-- Display results 
+DUMP avg_sales;
+
+
+
+
+-----------------------Slip11 (PIG JOIN)--------------------------------:
+
+vim employee_details.txt
+```
+1,John,3
+2,Emma,1
+3,Raj,2
+4,Sara,3
+5,Ravi,4
+```
+
+vim department.txt
+```
+1,HR
+2,IT
+3,Sales
+4,Finance
+```
+
+hdfs dfs -ls /user/talentum
+hdfs dfs -mkdir -p /user/talentum
+hdfs dfs -put ~/Desktop/EndSem/employee_details.txt /user/talentum/
+hdfs dfs -put ~/Desktop/EndSem/department.txt /user/talentum/
+hdfs dfs -ls /user/talentum
+hdfs dfs -cat /user/talentum/employee_details.txt
+hdfs dfs -cat /user/talentum/department.txt
+
+
+pig
+
+
+
+-- Load datasets 
 employees = LOAD 'employee_details.txt' USING PigStorage(',') 
-           AS (emp_id:int, name:chararray, dept_id:int);
-
+           AS (emp_id:int, name:chararray, dept_id:chararray); 
 departments = LOAD 'department.txt' USING PigStorage(',') 
-             AS (dept_id:int, dept_name:chararray);
-
--- Perform join
-joined_data = JOIN employees BY dept_id, departments BY dept_id;
-
--- Generate result with employee names and department names
-result = FOREACH joined_data GENERATE employees::name, departments::dept_name;
-
+             AS (dept_id:int, dept_name:chararray); 
+ 
+-- Perform join 
+joined_data = JOIN employees BY dept_id, departments BY dept_id; 
+ 
+-- Generate result with employee names and department names 
+result = FOREACH joined_data GENERATE employees::name, departments::dept_name; 
+ 
 -- Display results
 DUMP result;
 
-------------------------------------------------------
-Slip 12 – Pig Sorting and Filtering
 
--- Load movie dataset
+-----------------------Slip12 (PIG SORTING AND FILTERING)--------------------------------:
+
+vim movies.txt
+```
+Inception,Movie,2010,8.8
+Breaking Bad,TV Show,2008,9.5
+The Dark Knight,Movie,2008,9.0
+Stranger Things,TV Show,2016,8.7
+Money Heist,TV Show,2017,8.3
+The Witcher,TV Show,2019,8.1
+Friends,TV Show,1994,8.9
+Interstellar,Movie,2014,8.6
+Game of Thrones,TV Show,2011,9.2
+The Office,TV Show,2005,8.9
+Narcos,TV Show,2015,8.8
+Peaky Blinders,TV Show,2013,8.8
+Avatar,Movie,2009,7.8
+House of Cards,TV Show,2013,8.7
+Vikings,TV Show,2013,8.5
+Squid Game,TV Show,2021,8.0
+The Boys,TV Show,2019,8.7
+Lucifer,TV Show,2016,8.1
+Breaking Bad: El Camino,Movie,2019,7.4
+The Crown,TV Show,2016,8.6
+```
+
+hdfs dfs -ls /user/talentum
+hdfs dfs -mkdir -p /user/talentum
+hdfs dfs -put ~/Desktop/EndSem/movies.txt /user/talentum/
+hdfs dfs -ls /user/talentum
+hdfs dfs -cat /user/talentum/movies.txt
+
+
+pig
+
+-- Load movie dataset 
 movies = LOAD 'movies.txt' USING PigStorage(',') 
-         AS (title:chararray, type:chararray, release_year:int, rating:double);
+         AS (title:chararray, type:chararray, release_year:int, rating:double
+); 
+ 
+-- Filter only TV Shows 
+tv_shows = FILTER movies BY type == 'TV Show'; 
+ 
+-- Sort by release year descending 
+sorted_shows = ORDER tv_shows BY release_year DESC; 
+ 
+-- Get top 10 
+top_10 = LIMIT sorted_shows 10; 
+ 
+-- Display results 
 
--- Filter only TV Shows
-tv_shows = FILTER movies BY type == 'TV Show';
-
--- Sort by release year descending
-sorted_shows = ORDER tv_shows BY release_year DESC;
-
--- Get top 10
-top_10 = LIMIT sorted_shows 10;
-
--- Display results
-DUMP top_10;
-
--------------------------------------------------------
+DUMP top_10; 
